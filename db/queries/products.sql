@@ -7,10 +7,12 @@ INSERT INTO products
 VALUES($1, $2, $3)
 RETURNING *;
 
--- name: DeleteProduct :exec
-DELETE FROM products WHERE id = $1;
+-- name: DeleteProduct :many
+DELETE FROM products WHERE id = $1
+RETURNING *;
 
--- name: UpdateProduct :exec
+-- name: UpdateProduct :many
 UPDATE products
 SET name=coalesce(sqlc.narg('name'), name), description=coalesce(sqlc.narg('description'),description), price=coalesce(sqlc.narg('price'), price), updated_at=NOW()
-WHERE id=$1;
+WHERE id=$1
+RETURNING *;

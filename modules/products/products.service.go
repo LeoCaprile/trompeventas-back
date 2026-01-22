@@ -58,13 +58,19 @@ func deleteProductHandler(ctx *gin.Context) {
 		return
 	}
 
-	errDB := db.Queries.DeleteProduct(ctx, productUUID)
+	product, errDB := db.Queries.DeleteProduct(ctx, productUUID)
 	if errDB != nil {
 		log.Error("Error on db", errDB)
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
 
+	if len(product) == 0 {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": "Product not found",
+		})
+		return
+	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "product deleted successfully",
 	})
@@ -78,10 +84,10 @@ func updateProductHandler(ctx *gin.Context) {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
-	product := client.UpdateProductParams{}
+	productToUpdate := client.UpdateProductParams{}
 	decoder := json.NewDecoder(ctx.Request.Body)
 
-	err := decoder.Decode(&product)
+	err := decoder.Decode(&productToUpdate)
 	if err != nil {
 		log.Error("Bad Request", err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -91,12 +97,19 @@ func updateProductHandler(ctx *gin.Context) {
 		return
 	}
 
-	product.ID = productUUID
+	productToUpdate.ID = productUUID
 
-	errDB := db.Queries.UpdateProduct(ctx, product)
+	product, errDB := db.Queries.UpdateProduct(ctx, productToUpdate)
 	if errDB != nil {
 		log.Error("Error happen on db", errDB)
 		ctx.Status(http.StatusUnprocessableEntity)
+		return
+	}
+
+	if len(product) == 0 {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": "Product not found",
+		})
 		return
 	}
 

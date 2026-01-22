@@ -39,13 +39,36 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 	return i, err
 }
 
-const deleteProduct = `-- name: DeleteProduct :exec
+const deleteProduct = `-- name: DeleteProduct :many
 DELETE FROM products WHERE id = $1
+RETURNING id, name, description, price, created_at, updated_at
 `
 
-func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteProduct, id)
-	return err
+func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) ([]Product, error) {
+	rows, err := q.db.Query(ctx, deleteProduct, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getProducts = `-- name: GetProducts :many
@@ -79,10 +102,11 @@ func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
 	return items, nil
 }
 
-const updateProduct = `-- name: UpdateProduct :exec
+const updateProduct = `-- name: UpdateProduct :many
 UPDATE products
 SET name=coalesce($2, name), description=coalesce($3,description), price=coalesce($4, price), updated_at=NOW()
 WHERE id=$1
+RETURNING id, name, description, price, created_at, updated_at
 `
 
 type UpdateProductParams struct {
@@ -92,12 +116,34 @@ type UpdateProductParams struct {
 	Price       pgtype.Int8 `json:"price"`
 }
 
-func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
-	_, err := q.db.Exec(ctx, updateProduct,
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) ([]Product, error) {
+	rows, err := q.db.Query(ctx, updateProduct,
 		arg.ID,
 		arg.Name,
 		arg.Description,
 		arg.Price,
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
