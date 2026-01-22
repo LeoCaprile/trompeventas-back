@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"restorapp/db"
+	"restorapp/modules/categories"
 	"restorapp/modules/products"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,7 @@ func main() {
 	defer conn.Close(context.Background())
 
 	products.ProductsController(router)
+	categories.CategoriesController(router)
 
 	router.Run()
 }
