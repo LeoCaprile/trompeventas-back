@@ -7,16 +7,17 @@ import (
 	"restorapp/db/client"
 
 	"github.com/charmbracelet/log"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/joho/godotenv"
 )
 
 var Queries *client.Queries
 
-func InitDBClient() *pgx.Conn {
+func InitDBClient() *pgxpool.Pool {
 	godotenv.Load()
 
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DB_URL"))
+	conn, err := pgxpool.New(context.Background(), os.Getenv("DB_URL"))
 	if err != nil {
 		log.Error(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)

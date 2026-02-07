@@ -1,10 +1,17 @@
 package categories
 
-import "github.com/gin-gonic/gin"
+import (
+	"restorapp/modules/auth"
+
+	"github.com/gin-gonic/gin"
+)
 
 func CategoriesController(router *gin.Engine) {
-	router.GET("/categories", getCategoriesHandler)
-	router.POST("/categories", createCategoriesHandler)
-	router.DELETE("/categories/:id", deleteCategoriesHandler)
-	router.POST("/categories/:id", updateCategoriesHandler)
+	categoriesRouter := router.Group("/categories")
+
+	categoriesRouter.Use(auth.AuthMiddleware())
+	categoriesRouter.GET("/", getCategoriesHandler)
+	categoriesRouter.POST("/", createCategoriesHandler)
+	categoriesRouter.DELETE("/:id", deleteCategoriesHandler)
+	categoriesRouter.POST("/:id", updateCategoriesHandler)
 }

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verifica tu Email - Trompeventas</title>
+    <style>
+      /* Reset and base styles for email clients */
+      body,
+      table,
+      td,
+      a {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+      }
+      table,
+      td {
+        mso-table-lspace: 0pt;
+        mso-table-rspace: 0pt;
+      }
+      img {
+        -ms-interpolation-mode: bicubic;
+        border: 0;
+        height: auto;
+        line-height: 100%;
+        outline: none;
+        text-decoration: none;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      /* Custom styles */
+      body {
+        background-color: #0a0a0a;
+        font-family: Georgia, "Times New Roman", serif;
+        color: #e8e8e8;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: linear-gradient(
+          135deg,
+          #1a1410 0%,
+          #2d1810 50%,
+          #1a1410 100%
+        );
+      }
+
+      .header {
+        background: linear-gradient(180deg, #d4af37 0%, #aa8621 100%);
+        padding: 40px 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 10px,
+          rgba(255, 255, 255, 0.05) 10px,
+          rgba(255, 255, 255, 0.05) 20px
+        );
+        animation: shine 20s linear infinite;
+      }
+
+      @keyframes shine {
+        0% {
+          transform: translate(0, 0);
+        }
+        100% {
+          transform: translate(50%, 50%);
+        }
+      }
+
+      .trumpet-icon {
+        font-size: 64px;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .logo-text {
+        font-size: 32px;
+        font-weight: bold;
+        color: #1a1410;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+        letter-spacing: 2px;
+      }
+
+      .tagline {
+        font-size: 14px;
+        color: #3d2814;
+        margin: 5px 0 0 0;
+        position: relative;
+        z-index: 1;
+        font-style: italic;
+        letter-spacing: 1px;
+      }
+
+      .content {
+        padding: 50px 30px;
+        background-color: #1a1410;
+      }
+
+      .greeting {
+        font-size: 28px;
+        color: #d4af37;
+        margin: 0 0 20px 0;
+        font-weight: normal;
+        letter-spacing: 1px;
+      }
+
+      .message {
+        font-size: 16px;
+        line-height: 1.8;
+        color: #c9b896;
+        margin: 0 0 30px 0;
+      }
+
+      .cta-container {
+        text-align: center;
+        margin: 40px 0;
+      }
+
+      .verify-button {
+        display: inline-block;
+        padding: 18px 50px;
+        background: linear-gradient(
+          135deg,
+          #d4af37 0%,
+          #f4d56e 50%,
+          #d4af37 100%
+        );
+        color: #1a1410;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 4px;
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        transition: all 0.3s ease;
+        letter-spacing: 1px;
+        border: 2px solid #f4d56e;
+      }
+
+      .verify-button:hover {
+        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+        transform: translateY(-2px);
+      }
+
+      .divider {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          #d4af3750 50%,
+          transparent 100%
+        );
+        margin: 30px 0;
+      }
+
+      .info-box {
+        background: rgba(212, 175, 55, 0.08);
+        border-left: 3px solid #d4af37;
+        padding: 20px;
+        margin: 30px 0;
+        border-radius: 0 4px 4px 0;
+      }
+
+      .info-box p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #a89968;
+      }
+
+      .footer {
+        background-color: #0f0d0a;
+        padding: 30px 20px;
+        text-align: center;
+        border-top: 1px solid #2d1810;
+      }
+
+      .footer-text {
+        font-size: 13px;
+        color: #6b5d4f;
+        margin: 5px 0;
+        line-height: 1.6;
+      }
+
+      .footer-links {
+        margin: 15px 0;
+      }
+
+      .footer-link {
+        color: #aa8621;
+        text-decoration: none;
+        margin: 0 10px;
+        font-size: 13px;
+      }
+
+      .footer-link:hover {
+        color: #d4af37;
+        text-decoration: underline;
+      }
+
+      /* Responsive styles */
+      @media only screen and (max-width: 600px) {
+        .email-container {
+          width: 100% !important;
+        }
+
+        .content {
+          padding: 30px 20px !important;
+        }
+
+        .greeting {
+          font-size: 24px !important;
+        }
+
+        .message {
+          font-size: 15px !important;
+        }
+
+        .verify-button {
+          padding: 16px 40px !important;
+          font-size: 16px !important;
+          display: block !important;
+          margin: 0 auto !important;
+        }
+
+        .logo-text {
+          font-size: 26px !important;
+        }
+
+        .trumpet-icon {
+          font-size: 52px !important;
+        }
+
+        .header {
+          padding: 30px 15px !important;
+        }
+
+        .info-box {
+          padding: 15px !important;
+        }
+      }
+
+      @media only screen and (max-width: 400px) {
+        .greeting {
+          font-size: 20px !important;
+        }
+
+        .message {
+          font-size: 14px !important;
+        }
+
+        .footer-link {
+          display: block;
+          margin: 8px 0 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <table
+      role="presentation"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      width="100%"
+    >
+      <tr>
+        <td style="padding: 20px 0">
+          <table
+            role="presentation"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            class="email-container"
+          >
+            <!-- Header -->
+            <tr>
+              <td class="header">
+                <div class="trumpet-icon">🎺</div>
+                <h1 class="logo-text">TROMPEVENTAS</h1>
+                <p class="tagline">Marketplace de Trompetas de Confianza</p>
+              </td>
+            </tr>
+
+            <!-- Main Content -->
+            <tr>
+              <td class="content">
+                <h2 class="greeting">¡Hola, {{USER_NAME}}!</h2>
+
+                <p class="message">Bienvenido a Trompeventas.</p>
+
+                <p class="message">
+                  Antes de que puedas comenzar a ofrecer tus productos,
+                  necesitamos verificar tu dirección de correo electrónico.
+                </p>
+
+                <div class="cta-container">
+                  <a href="{{VERIFICATION_LINK}}" class="verify-button"
+                    >VERIFICAR MI EMAIL</a
+                  >
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="info-box">
+                  <p>
+                    <strong>¿Por qué verificar?</strong><br />
+                    La verificación de correo nos ayuda a proteger tu cuenta,
+                    prevenir fraudes y asegurarnos de que recibas todas las
+                    notificaciones importantes sobre tus publicaciónes y
+                    comentarios
+                  </p>
+                </div>
+
+                <p class="message">
+                  Una vez verificado, tendrás acceso completo a:
+                </p>
+                <p class="message" style="padding-left: 20px">
+                  • Publicar tus instrumentos o boquillas para venta<br />
+                  • Comentar en publicaciones<br />
+                  • Visualizar contactos de usuarios<br />
+                  • Enviar mensajes a usuarios<br />
+                </p>
+
+                <div class="divider"></div>
+
+                <p class="message" style="font-size: 14px; color: #a89968">
+                  <em
+                    >Si no creaste una cuenta en Trompeventas, puedes ignorar
+                    este correo de forma segura. La cuenta no será activada sin
+                    verificación.</em
+                  >
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td class="footer">
+                <p
+                  class="footer-text"
+                  style="font-weight: bold; color: #aa8621; margin-bottom: 10px"
+                >
+                  Sigue Tocando, Sigue Creciendo
+                </p>
+
+                <div class="footer-links">
+                  <a href="https://trompeventas.cl" class="footer-link"
+                    >trompeventas.cl</a
+                  >
+                  <a href="https://trompeventas.cl/ayuda" class="footer-link"
+                    >Centro de Ayuda</a
+                  >
+                  <a href="https://trompeventas.cl/contacto" class="footer-link"
+                    >Contáctanos</a
+                  >
+                </div>
+
+                <p
+                  class="footer-text"
+                  style="margin-top: 15px; font-size: 11px"
+                >
+                  Recibes este correo porque creaste una cuenta en
+                  Trompeventas<br />
+                  <a href="https://trompeventas.cl/politica" class="footer-link"
+                    >Política de Privacidad</a
+                  >
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

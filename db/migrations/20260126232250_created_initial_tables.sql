@@ -21,7 +21,7 @@ CREATE TABLE "public"."products" (
 
 CREATE TABLE "public"."product_images" (
     "id" uuid NOT NULL DEFAULT gen_random_uuid(),
-    "product_id" bigint NOT NULL,
+    "product_id" uuid NOT NULL,
     "image_url" text NOT NULL,
     "created_at" timestamp NOT NULL DEFAULT NOW(),
     PRIMARY KEY ("id")
@@ -36,7 +36,7 @@ CREATE TABLE "public"."products_category" (
 );
 
 ALTER TABLE "public"."products_category" ADD CONSTRAINT "fk_products_category_category_id_categories_id" FOREIGN KEY("category_id") REFERENCES "public"."categories"("id") ON DELETE CASCADE;
-ALTER TABLE "public"."product_images" ADD CONSTRAINT "fk_product_images_id_products_id" FOREIGN KEY("id") REFERENCES "public"."products"("id");
+ALTER TABLE "public"."product_images" ADD CONSTRAINT "fk_product_images_id_products_id" FOREIGN KEY("product_id") REFERENCES "public"."products"("id");
 ALTER TABLE "public"."products_category" ADD CONSTRAINT "fk_products_category_product_id_products_id" FOREIGN KEY("product_id") REFERENCES "public"."products"("id");
 
 -- +goose down

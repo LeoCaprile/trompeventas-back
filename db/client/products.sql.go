@@ -71,8 +71,87 @@ func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) ([]Product, e
 	return items, nil
 }
 
+const getProductById = `-- name: GetProductById :one
+SELECT id, name, description, price, created_at, updated_at FROM products WHERE id = $1
+`
+
+func (q *Queries) GetProductById(ctx context.Context, id uuid.UUID) (Product, error) {
+	row := q.db.QueryRow(ctx, getProductById, id)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Price,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getProductCategoriesById = `-- name: GetProductCategoriesById :many
+SELECT c.id, pc.product_id, c.name FROM products_category pc
+JOIN categories c ON pc.category_id = c.id 
+WHERE product_id = $1
+`
+
+type GetProductCategoriesByIdRow struct {
+	ID        uuid.UUID `json:"id"`
+	ProductID uuid.UUID `json:"product_id"`
+	Name      string    `json:"name"`
+}
+
+func (q *Queries) GetProductCategoriesById(ctx context.Context, productID uuid.UUID) ([]GetProductCategoriesByIdRow, error) {
+	rows, err := q.db.Query(ctx, getProductCategoriesById, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductCategoriesByIdRow
+	for rows.Next() {
+		var i GetProductCategoriesByIdRow
+		if err := rows.Scan(&i.ID, &i.ProductID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getProductImagesById = `-- name: GetProductImagesById :many
+SELECT id, product_id, image_url, created_at FROM product_images WHERE product_id = $1
+`
+
+func (q *Queries) GetProductImagesById(ctx context.Context, productID uuid.UUID) ([]ProductImage, error) {
+	rows, err := q.db.Query(ctx, getProductImagesById, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductImage
+	for rows.Next() {
+		var i ProductImage
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProductID,
+			&i.ImageUrl,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getProducts = `-- name: GetProducts :many
-SELECT id, name, description, price, created_at, updated_at FROM products
+SELECT id, name, description, price, created_at, updated_at FROM products p
 `
 
 func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
@@ -91,6 +170,66 @@ func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
 			&i.Price,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getProductsCategories = `-- name: GetProductsCategories :many
+SELECT c.id, pc.product_id, c.name FROM products_category pc
+JOIN categories c ON pc.category_id = c.id
+`
+
+type GetProductsCategoriesRow struct {
+	ID        uuid.UUID `json:"id"`
+	ProductID uuid.UUID `json:"product_id"`
+	Name      string    `json:"name"`
+}
+
+func (q *Queries) GetProductsCategories(ctx context.Context) ([]GetProductsCategoriesRow, error) {
+	rows, err := q.db.Query(ctx, getProductsCategories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetProductsCategoriesRow
+	for rows.Next() {
+		var i GetProductsCategoriesRow
+		if err := rows.Scan(&i.ID, &i.ProductID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getProductsImages = `-- name: GetProductsImages :many
+SELECT id, product_id, image_url, created_at FROM product_images
+`
+
+func (q *Queries) GetProductsImages(ctx context.Context) ([]ProductImage, error) {
+	rows, err := q.db.Query(ctx, getProductsImages)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductImage
+	for rows.Next() {
+		var i ProductImage
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProductID,
+			&i.ImageUrl,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

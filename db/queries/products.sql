@@ -1,5 +1,23 @@
 -- name: GetProducts :many
-SELECT * FROM products;
+SELECT * FROM products p;
+
+-- name: GetProductsImages :many
+SELECT * FROM product_images; 
+
+-- name: GetProductsCategories :many
+SELECT c.id, pc.product_id, c.name FROM products_category pc
+JOIN categories c ON pc.category_id = c.id; 
+
+-- name: GetProductById :one
+SELECT * FROM products WHERE id = $1;
+
+-- name: GetProductCategoriesById :many
+SELECT c.id, pc.product_id, c.name FROM products_category pc
+JOIN categories c ON pc.category_id = c.id 
+WHERE product_id = $1;
+
+-- name: GetProductImagesById :many
+SELECT * FROM product_images WHERE product_id = $1;
 
 -- name: CreateProduct :one
 INSERT INTO products

@@ -15,13 +15,48 @@ import (
 )
 
 func getProductsHandler(ctx *gin.Context) {
-	data, err := db.Queries.GetProducts(ctx)
+	productList := []ProductsWithImagesAndCategories{}
+
+	products, err := db.Queries.GetProducts(ctx)
 	if err != nil {
-		log.Error("Could not retrieve data of tables", err)
+		log.Error("Could not retrieve data of products", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, data)
+	images, err := db.Queries.GetProductsImages(ctx)
+	if err != nil {
+		log.Error("Could not retrieve data of products", err)
+		return
+	}
+
+	categories, err := db.Queries.GetProductsCategories(ctx)
+	if err != nil {
+		log.Error("Could not retrieve data of products", err)
+		return
+	}
+
+	productsImages := make(map[uuid.UUID][]client.ProductImage)
+	productsCategories := make(map[uuid.UUID][]client.GetProductsCategoriesRow)
+
+	for _, image := range images {
+		productsImages[image.ProductID] = append(productsImages[image.ProductID], image)
+	}
+
+	for _, category := range categories {
+		productsCategories[category.ProductID] = append(productsCategories[category.ProductID], category)
+	}
+
+	for _, product := range products {
+		productToAdd := ProductsWithImagesAndCategories{
+			Product:    product,
+			Images:     productsImages[product.ID],
+			Categories: productsCategories[product.ID],
+		}
+
+		productList = append(productList, productToAdd)
+	}
+
+	ctx.JSON(http.StatusOK, productList)
 }
 
 func createProductHandler(ctx *gin.Context) {
@@ -116,4 +151,42 @@ func updateProductHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{
 		"message": "updated successfully",
 	})
+}
+
+func getProductByIdHandler(ctx *gin.Context) {
+	productIdParam := ctx.Param("id")
+	productUUID, errUUID := uuid.Parse(productIdParam)
+	if errUUID != nil {
+		log.Error("Error parsing UUID", errUUID)
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+	product, err := db.Queries.GetProductById(ctx, productUUID)
+	if err != nil {
+		log.Error("Could not retrieve data of products", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	category, err := db.Queries.GetProductCategoriesById(ctx, productUUID)
+	if err != nil {
+		log.Error("Could not retrieve data of products", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	images, err := db.Queries.GetProductImagesById(ctx, productUUID)
+	if err != nil {
+		log.Error("Could not retrieve data of products", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	productData := ProductWithImagesAndCategories{
+		Product:    product,
+		Categories: category,
+		Images:     images,
+	}
+
+	ctx.JSON(http.StatusOK, productData)
 }

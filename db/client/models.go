@@ -16,6 +16,17 @@ type Category struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type OauthAccount struct {
+	ID             uuid.UUID        `json:"id"`
+	UserID         uuid.UUID        `json:"user_id"`
+	Provider       string           `json:"provider"`
+	ProviderUserID string           `json:"provider_user_id"`
+	AccessToken    pgtype.Text      `json:"access_token"`
+	RefreshToken   pgtype.Text      `json:"refresh_token"`
+	ExpiresAt      pgtype.Timestamp `json:"expires_at"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+}
+
 type Product struct {
 	ID          uuid.UUID        `json:"id"`
 	Name        string           `json:"name"`
@@ -27,7 +38,7 @@ type Product struct {
 
 type ProductImage struct {
 	ID        uuid.UUID        `json:"id"`
-	ProductID int64            `json:"product_id"`
+	ProductID uuid.UUID        `json:"product_id"`
 	ImageUrl  string           `json:"image_url"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
@@ -37,4 +48,33 @@ type ProductsCategory struct {
 	ProductID  uuid.UUID        `json:"product_id"`
 	CategoryID uuid.UUID        `json:"category_id"`
 	CreatedAt  pgtype.Timestamp `json:"created_at"`
+}
+
+type RefreshToken struct {
+	ID        uuid.UUID        `json:"id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	TokenHash string           `json:"token_hash"`
+	ExpiresAt pgtype.Timestamp `json:"expires_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	Revoked   pgtype.Bool      `json:"revoked"`
+}
+
+type User struct {
+	ID            uuid.UUID        `json:"id"`
+	Email         string           `json:"email"`
+	PasswordHash  pgtype.Text      `json:"password_hash"`
+	Name          string           `json:"name"`
+	EmailVerified pgtype.Bool      `json:"email_verified"`
+	Image         pgtype.Text      `json:"image"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+}
+
+type VerificationToken struct {
+	ID        uuid.UUID        `json:"id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	Token     string           `json:"token"`
+	Type      string           `json:"type"`
+	ExpiresAt pgtype.Timestamp `json:"expires_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
 }

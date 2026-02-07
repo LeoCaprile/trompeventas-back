@@ -17,7 +17,7 @@ import (
 func getCategoriesHandler(ctx *gin.Context) {
 	data, err := db.Queries.GetCategories(ctx)
 	if err != nil {
-		log.Error("Could not retrieve data of tables", err)
+		log.Error("Could not retrieve data of categories", err)
 		return
 	}
 
