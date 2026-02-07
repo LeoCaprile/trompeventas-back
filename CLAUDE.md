@@ -2,9 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Security
+
+**NEVER commit sensitive information** such as API keys, secrets, tokens, passwords, or credentials to the repository. This includes:
+- `.env` files (already in `.gitignore`)
+- Hardcoded secrets in source code
+- Private keys or certificates
+
+Use environment variables for all sensitive configuration. If a secret is accidentally committed, it must be rotated immediately — removing it from future commits does NOT remove it from git history.
+
 ## Project Overview
 
-This is a Go REST API backend for an e-commerce store, built with Gin framework. It uses PostgreSQL for data persistence, sqlc for type-safe SQL queries, and GoBetterAuth for authentication. The API runs on port 8080 and serves a React frontend at `http://localhost:5173`.
+This is a Go REST API backend for an e-commerce store, built with Gin framework. It uses PostgreSQL for data persistence, sqlc for type-safe SQL queries, and custom JWT authentication. The API runs on port 8080 and serves a React frontend at `http://localhost:5173`.
 
 ## Development Commands
 
@@ -24,7 +33,7 @@ The codebase follows a modular pattern where each domain has its own package:
 
 ```
 modules/
-├── auth/          # Authentication (GoBetterAuth integration)
+├── auth/          # Custom JWT authentication
 ├── products/      # Product CRUD operations
 ├── categories/    # Category management
 └── email/         # Email service (Resend integration)
@@ -44,8 +53,7 @@ The project uses **sqlc** for type-safe database access:
 3. **Use in handlers**: Access via global `db.Queries` (initialized in `db.InitDBClient()`)
 
 **Schema management**:
-- Migrations in `db/migrations/` using goose
-- Migration naming: `NNN_description.sql` (e.g., `001_created_initial_tables.sql`)
+- Migrations in `db/migrations/` using goose (timestamp-based naming)
 - Migrations must include `-- +goose up` and `-- +goose down` directives
 
 **Database client**:
@@ -53,21 +61,26 @@ The project uses **sqlc** for type-safe database access:
 - Global `db.Queries` variable provides access to all generated query methods
 - Each query method is strongly typed based on SQL definitions
 
-### Authentication (GoBetterAuth)
+### Authentication (Custom JWT)
 
-Authentication is handled by the `go-better-auth` library:
+Authentication uses a custom JWT implementation with a single-cookie architecture:
 
-- **Configuration**: `modules/auth/auth.config.go` initializes auth with email/password strategy
-- **Email verification**: Required on signup, sends verification email via Resend
-- **Routes**: All auth routes exposed at `/auth/*` (handled by BetterAuth)
-- **Middleware**: `auth.AuthMiddleware()` protects routes (checks session/token)
-- **Templates**: Email templates in `modules/email/templates/` using gonja
+- **Token strategy**: Short-lived access tokens (15 min) + refresh tokens (7 days)
+- **Token delivery**: Tokens returned in JSON response body, stored by frontend in a single httpOnly `__session` cookie
+- **Password hashing**: bcrypt with cost 12
+- **Middleware**: `AuthMiddleware()` reads `Authorization: Bearer <token>` header
+- **OAuth**: Google OAuth with in-memory state and one-time exchange codes
+- **Email verification**: Sends verification emails via Resend
 
-**Auth endpoints** (managed by BetterAuth):
-- `POST /auth/sign-up` - Create account
-- `POST /auth/sign-in` - Login
-- `POST /auth/sign-out` - Logout
-- `GET /auth/verify-email` - Verify email token
+**Auth endpoints** (`modules/auth/auth.controller.go`):
+- `POST /auth/sign-up` - Create account (returns `{ user }`)
+- `POST /auth/sign-in` - Login (returns `{ user, accessToken, refreshToken }`)
+- `POST /auth/sign-out` - Logout (accepts `{ refreshToken }` in body)
+- `POST /auth/refresh` - Refresh tokens (accepts `{ refreshToken }`, returns new tokens)
+- `GET /auth/me` - Get current user (protected, reads Authorization header)
+- `GET /auth/oauth/google` - Get Google OAuth URL
+- `GET /auth/oauth/google/callback` - Handle OAuth callback
+- `POST /auth/oauth/google/exchange` - Exchange one-time code for user + tokens
 
 ### Routing Pattern
 
@@ -91,7 +104,7 @@ func ProductsController(router *gin.Engine) {
 - `GET /products` - List all products (with images and categories)
 - `GET /products/:id` - Get single product
 
-**Protected routes** (require authentication):
+**Protected routes** (require Authorization header):
 - `POST /products` - Create product
 - `POST /products/:id` - Update product
 - `DELETE /products/:id` - Delete product
@@ -102,18 +115,19 @@ CORS is configured in `main.go` to allow:
 - **Origin**: `http://localhost:5173` (React frontend)
 - **Methods**: GET, POST, PUT, DELETE, OPTIONS
 - **Headers**: Origin, Content-Type, Cookie, Authorization
-- **Credentials**: `true` (allows cookies)
+- **Credentials**: `true`
 
 ### Environment Variables
 
 Required environment variables (in `.env`):
 
 - `DB_URL` - PostgreSQL connection string
-- `GO_BETTER_AUTH_BASE_URL` - Base URL for auth callbacks (e.g., `http://localhost:8080`)
-- `GO_BETTER_AUTH_SECRET` - Secret key for session encryption
-- `RESEND_APIKEY` - Resend API key for sending emails
-
-**Note**: The `.env` file is tracked in git with example values. In production, use actual secrets.
+- `JWT_SECRET` - Secret key for signing JWT tokens
+- `FRONTEND_URL` - Frontend URL (default: `http://localhost:5173`)
+- `BACKEND_URL` - Backend URL (default: `http://localhost:8080`)
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
+- `RESEND_API_KEY` - Resend API key for sending emails
 
 ## Key Conventions
 
@@ -126,16 +140,20 @@ Required environment variables (in `.env`):
 ## Database Schema
 
 Core tables:
+- `users` - User accounts (id, email, password_hash, name, email_verified, image)
+- `refresh_tokens` - JWT refresh tokens (hashed, with expiry and revocation)
+- `verification_tokens` - Email verification tokens
+- `oauth_accounts` - Linked OAuth providers (Google)
 - `products` - Product details (id, name, description, price)
 - `product_images` - Product images (many-to-one with products)
 - `categories` - Category master data
 - `products_category` - Product-category junction table (many-to-many)
 
-All tables include `created_at` and `updated_at` timestamps.
+All tables include `created_at` timestamps. Most include `updated_at`.
 
 ## Adding New Features
 
-1. **Create migration**: Add SQL file in `db/migrations/` with goose directives
+1. **Create migration**: Add SQL file in `db/migrations/` with goose directives (timestamp naming)
 2. **Run migration**: `source goose.config.sh && goose up`
 3. **Add queries**: Write sqlc queries in `db/queries/` (or update existing)
 4. **Generate code**: Run `sqlc generate`
