@@ -16,6 +16,24 @@ type Category struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type Comment struct {
+	ID        uuid.UUID        `json:"id"`
+	ProductID uuid.UUID        `json:"product_id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	ParentID  pgtype.UUID      `json:"parent_id"`
+	Content   string           `json:"content"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+type CommentVote struct {
+	ID        uuid.UUID        `json:"id"`
+	CommentID uuid.UUID        `json:"comment_id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	VoteType  string           `json:"vote_type"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
 type OauthAccount struct {
 	ID             uuid.UUID        `json:"id"`
 	UserID         uuid.UUID        `json:"user_id"`
@@ -34,6 +52,10 @@ type Product struct {
 	Price       int64            `json:"price"`
 	CreatedAt   pgtype.Timestamp `json:"created_at"`
 	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+	UserID      pgtype.UUID      `json:"user_id"`
+	Condition   string           `json:"condition"`
+	State       string           `json:"state"`
+	Negotiable  string           `json:"negotiable"`
 }
 
 type ProductImage struct {
@@ -68,6 +90,8 @@ type User struct {
 	Image         pgtype.Text      `json:"image"`
 	CreatedAt     pgtype.Timestamp `json:"created_at"`
 	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
+	Region        pgtype.Text      `json:"region"`
+	City          pgtype.Text      `json:"city"`
 }
 
 type VerificationToken struct {

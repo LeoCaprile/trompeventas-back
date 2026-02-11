@@ -14,19 +14,31 @@ import (
 
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO products
-(name, description, price)
-VALUES($1, $2, $3)
-RETURNING id, name, description, price, created_at, updated_at
+(name, description, price, user_id, condition, state, negotiable)
+VALUES($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, name, description, price, created_at, updated_at, user_id, condition, state, negotiable
 `
 
 type CreateProductParams struct {
 	Name        string      `json:"name"`
 	Description pgtype.Text `json:"description"`
 	Price       int64       `json:"price"`
+	UserID      pgtype.UUID `json:"user_id"`
+	Condition   string      `json:"condition"`
+	State       string      `json:"state"`
+	Negotiable  string      `json:"negotiable"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
-	row := q.db.QueryRow(ctx, createProduct, arg.Name, arg.Description, arg.Price)
+	row := q.db.QueryRow(ctx, createProduct,
+		arg.Name,
+		arg.Description,
+		arg.Price,
+		arg.UserID,
+		arg.Condition,
+		arg.State,
+		arg.Negotiable,
+	)
 	var i Product
 	err := row.Scan(
 		&i.ID,
@@ -35,13 +47,59 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.Price,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
+		&i.Condition,
+		&i.State,
+		&i.Negotiable,
+	)
+	return i, err
+}
+
+const createProductCategory = `-- name: CreateProductCategory :one
+INSERT INTO products_category (product_id, category_id) VALUES ($1, $2) RETURNING id, product_id, category_id, created_at
+`
+
+type CreateProductCategoryParams struct {
+	ProductID  uuid.UUID `json:"product_id"`
+	CategoryID uuid.UUID `json:"category_id"`
+}
+
+func (q *Queries) CreateProductCategory(ctx context.Context, arg CreateProductCategoryParams) (ProductsCategory, error) {
+	row := q.db.QueryRow(ctx, createProductCategory, arg.ProductID, arg.CategoryID)
+	var i ProductsCategory
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.CategoryID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createProductImage = `-- name: CreateProductImage :one
+INSERT INTO product_images (product_id, image_url) VALUES ($1, $2) RETURNING id, product_id, image_url, created_at
+`
+
+type CreateProductImageParams struct {
+	ProductID uuid.UUID `json:"product_id"`
+	ImageUrl  string    `json:"image_url"`
+}
+
+func (q *Queries) CreateProductImage(ctx context.Context, arg CreateProductImageParams) (ProductImage, error) {
+	row := q.db.QueryRow(ctx, createProductImage, arg.ProductID, arg.ImageUrl)
+	var i ProductImage
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.ImageUrl,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const deleteProduct = `-- name: DeleteProduct :many
 DELETE FROM products WHERE id = $1
-RETURNING id, name, description, price, created_at, updated_at
+RETURNING id, name, description, price, created_at, updated_at, user_id, condition, state, negotiable
 `
 
 func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) ([]Product, error) {
@@ -60,6 +118,10 @@ func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) ([]Product, e
 			&i.Price,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
+			&i.Condition,
+			&i.State,
+			&i.Negotiable,
 		); err != nil {
 			return nil, err
 		}
@@ -71,8 +133,22 @@ func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) ([]Product, e
 	return items, nil
 }
 
+const deleteProductByOwner = `-- name: DeleteProductByOwner :exec
+DELETE FROM products WHERE id = $1 AND user_id = $2
+`
+
+type DeleteProductByOwnerParams struct {
+	ID     uuid.UUID   `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteProductByOwner(ctx context.Context, arg DeleteProductByOwnerParams) error {
+	_, err := q.db.Exec(ctx, deleteProductByOwner, arg.ID, arg.UserID)
+	return err
+}
+
 const getProductById = `-- name: GetProductById :one
-SELECT id, name, description, price, created_at, updated_at FROM products WHERE id = $1
+SELECT id, name, description, price, created_at, updated_at, user_id, condition, state, negotiable FROM products WHERE id = $1
 `
 
 func (q *Queries) GetProductById(ctx context.Context, id uuid.UUID) (Product, error) {
@@ -85,6 +161,10 @@ func (q *Queries) GetProductById(ctx context.Context, id uuid.UUID) (Product, er
 		&i.Price,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
+		&i.Condition,
+		&i.State,
+		&i.Negotiable,
 	)
 	return i, err
 }
@@ -151,7 +231,7 @@ func (q *Queries) GetProductImagesById(ctx context.Context, productID uuid.UUID)
 }
 
 const getProducts = `-- name: GetProducts :many
-SELECT id, name, description, price, created_at, updated_at FROM products p
+SELECT id, name, description, price, created_at, updated_at, user_id, condition, state, negotiable FROM products p
 `
 
 func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
@@ -170,6 +250,45 @@ func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
 			&i.Price,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
+			&i.Condition,
+			&i.State,
+			&i.Negotiable,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getProductsByUserId = `-- name: GetProductsByUserId :many
+SELECT id, name, description, price, created_at, updated_at, user_id, condition, state, negotiable FROM products WHERE user_id = $1 ORDER BY created_at DESC
+`
+
+func (q *Queries) GetProductsByUserId(ctx context.Context, userID pgtype.UUID) ([]Product, error) {
+	rows, err := q.db.Query(ctx, getProductsByUserId, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.Condition,
+			&i.State,
+			&i.Negotiable,
 		); err != nil {
 			return nil, err
 		}
@@ -241,11 +360,48 @@ func (q *Queries) GetProductsImages(ctx context.Context) ([]ProductImage, error)
 	return items, nil
 }
 
+const searchProducts = `-- name: SearchProducts :many
+SELECT id, name, description, price, created_at, updated_at, user_id, condition, state, negotiable FROM products p
+WHERE p.name ILIKE '%' || $1 || '%'
+   OR p.description ILIKE '%' || $1 || '%'
+`
+
+func (q *Queries) SearchProducts(ctx context.Context, dollar_1 pgtype.Text) ([]Product, error) {
+	rows, err := q.db.Query(ctx, searchProducts, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.Condition,
+			&i.State,
+			&i.Negotiable,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateProduct = `-- name: UpdateProduct :many
 UPDATE products
-SET name=coalesce($2, name), description=coalesce($3,description), price=coalesce($4, price), updated_at=NOW()
+SET name=coalesce($2, name), description=coalesce($3,description), price=coalesce($4, price), condition=coalesce($5, condition), state=coalesce($6, state), negotiable=coalesce($7, negotiable), updated_at=NOW()
 WHERE id=$1
-RETURNING id, name, description, price, created_at, updated_at
+RETURNING id, name, description, price, created_at, updated_at, user_id, condition, state, negotiable
 `
 
 type UpdateProductParams struct {
@@ -253,6 +409,9 @@ type UpdateProductParams struct {
 	Name        pgtype.Text `json:"name"`
 	Description pgtype.Text `json:"description"`
 	Price       pgtype.Int8 `json:"price"`
+	Condition   pgtype.Text `json:"condition"`
+	State       pgtype.Text `json:"state"`
+	Negotiable  pgtype.Text `json:"negotiable"`
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) ([]Product, error) {
@@ -261,6 +420,9 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) ([
 		arg.Name,
 		arg.Description,
 		arg.Price,
+		arg.Condition,
+		arg.State,
+		arg.Negotiable,
 	)
 	if err != nil {
 		return nil, err
@@ -276,6 +438,10 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) ([
 			&i.Price,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
+			&i.Condition,
+			&i.State,
+			&i.Negotiable,
 		); err != nil {
 			return nil, err
 		}
