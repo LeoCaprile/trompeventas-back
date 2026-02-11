@@ -5,7 +5,10 @@ import (
 	"restorapp/modules/auth"
 	"restorapp/modules/categories"
 	"restorapp/modules/email"
+	"restorapp/modules/locations"
+	"restorapp/modules/comments"
 	"restorapp/modules/products"
+	"restorapp/modules/storage"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,11 +28,15 @@ func main() {
 	conn := db.InitDBClient()
 	defer conn.Close()
 	email.InitResendClient()
+	storage.InitStorage()
 
 	auth.InitAuth(router)
 
 	products.ProductsController(router)
 	categories.CategoriesController(router)
+	comments.CommentsController(router)
+	locations.LocationsController(router)
+	storage.StorageController(router)
 
 	router.Run()
 }

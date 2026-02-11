@@ -13,6 +13,7 @@ import (
 )
 
 var Queries *client.Queries
+var Pool *pgxpool.Pool
 
 func InitDBClient() *pgxpool.Pool {
 	godotenv.Load()
@@ -25,6 +26,7 @@ func InitDBClient() *pgxpool.Pool {
 
 	log.Info("Connected to database successfully")
 
+	Pool = conn
 	Queries = client.New(conn)
 	log.Info("Created DB client sucessfully")
 	return conn
