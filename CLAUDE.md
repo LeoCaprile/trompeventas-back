@@ -92,22 +92,35 @@ products.ProductsController(router)
 
 // In modules/products/products.controller.go
 func ProductsController(router *gin.Engine) {
-    router.GET("/products", getProductsHandler)  // Public
+    router.GET("/products", getProductsHandler)      // Public
+    router.GET("/products/:id", getProductByIdHandler) // Public
 
     protected := router.Group("/products")
-    protected.Use(auth.AuthMiddleware())         // Protected
+    protected.Use(auth.AuthMiddleware())
     protected.POST("/", createProductHandler)
+    protected.GET("/me", getMyProductsHandler)
+    protected.DELETE("/me/:id", deleteMyProductHandler)
+    protected.POST("/me/:id", updateMyProductHandler)
+
+    // Requires email verification
+    publish := router.Group("/products")
+    publish.Use(auth.AuthMiddleware(), auth.EmailVerifiedMiddleware())
+    publish.POST("/publish", publishProductHandler)
 }
 ```
 
 **Public routes**:
-- `GET /products` - List all products (with images and categories)
-- `GET /products/:id` - Get single product
+- `GET /products` - List all products (with images and categories). Supports `?q=` query param for search by name/description (case-insensitive, partial match via `ILIKE`)
+- `GET /products/:id` - Get single product (includes seller info)
 
 **Protected routes** (require Authorization header):
 - `POST /products` - Create product
-- `POST /products/:id` - Update product
-- `DELETE /products/:id` - Delete product
+- `GET /products/me` - List current user's products
+- `POST /products/me/:id` - Update own product
+- `DELETE /products/me/:id` - Delete own product
+- `POST /products/publish` - Publish product (requires email verification)
+- `POST /products/:id` - Update product (admin)
+- `DELETE /products/:id` - Delete product (admin)
 
 ### CORS Configuration
 
@@ -144,7 +157,7 @@ Core tables:
 - `refresh_tokens` - JWT refresh tokens (hashed, with expiry and revocation)
 - `verification_tokens` - Email verification tokens
 - `oauth_accounts` - Linked OAuth providers (Google)
-- `products` - Product details (id, name, description, price)
+- `products` - Product details (id, name, description, price, user_id, condition, state, negotiable)
 - `product_images` - Product images (many-to-one with products)
 - `categories` - Category master data
 - `products_category` - Product-category junction table (many-to-many)
