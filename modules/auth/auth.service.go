@@ -36,6 +36,8 @@ func userToResponse(user client.User) *UserResponse {
 		Name:          user.Name,
 		EmailVerified: user.EmailVerified.Bool,
 		Image:         user.Image.String,
+		Region:        user.Region.String,
+		City:          user.City.String,
 		CreatedAt:     user.CreatedAt.Time,
 	}
 }
@@ -249,6 +251,44 @@ func (s *AuthService) HandleGoogleOAuth(ctx context.Context, code string) (*User
 	return userToResponse(user), accessToken, refreshToken, nil
 }
 
+func (s *AuthService) UpdateProfile(ctx context.Context, userID uuid.UUID, name string, image *string, region *string, city *string) (*UserResponse, error) {
+	err := s.queries.UpdateUserName(ctx, client.UpdateUserNameParams{Name: name, ID: userID})
+	if err != nil {
+		return nil, err
+	}
+
+	if image != nil {
+		err = s.queries.UpdateUserImage(ctx, client.UpdateUserImageParams{
+			Image: pgtype.Text{String: *image, Valid: *image != ""},
+			ID:    userID,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if region != nil || city != nil {
+		r := pgtype.Text{Valid: false}
+		c := pgtype.Text{Valid: false}
+		if region != nil {
+			r = pgtype.Text{String: *region, Valid: *region != ""}
+		}
+		if city != nil {
+			c = pgtype.Text{String: *city, Valid: *city != ""}
+		}
+		err = s.queries.UpdateUserLocation(ctx, client.UpdateUserLocationParams{
+			Region: r,
+			City:   c,
+			ID:     userID,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s.GetUserByID(ctx, userID)
+}
+
 func (s *AuthService) CreateVerificationToken(ctx context.Context, userID uuid.UUID) (string, error) {
 	token := uuid.New().String()
 	expiresAt := time.Now().Add(24 * time.Hour)
@@ -299,6 +339,26 @@ func (s *AuthService) SendVerificationEmail(ctx context.Context, userID uuid.UUI
 		return errors.New("email already verified")
 	}
 
+	// Check for recent verification tokens (5-minute cooldown)
+	tokens, err := s.queries.GetUserVerificationTokens(ctx, userID)
+	if err == nil && len(tokens) > 0 {
+		// Get the most recent token
+		lastToken := tokens[0]
+		timeSince := time.Since(lastToken.CreatedAt.Time)
+		fiveMinutes := 5 * time.Minute
+
+		if timeSince < fiveMinutes {
+			remainingTime := fiveMinutes - timeSince
+			remainingMinutes := int(remainingTime.Minutes())
+			remainingSeconds := int(remainingTime.Seconds()) % 60
+
+			if remainingMinutes > 0 {
+				return fmt.Errorf("Por favor espera %d minutos antes de solicitar otro correo de verificación", remainingMinutes+1)
+			}
+			return fmt.Errorf("Por favor espera %d segundos antes de solicitar otro correo de verificación", remainingSeconds)
+		}
+	}
+
 	// Create verification token
 	token, err := s.CreateVerificationToken(ctx, userID)
 	if err != nil {
@@ -310,9 +370,9 @@ func (s *AuthService) SendVerificationEmail(ctx context.Context, userID uuid.UUI
 
 	err = email.SendVerificationEmail(user.Email, user.Name, verificationURL)
 	if err != nil {
-		fmt.Printf("Failed to send verification email: %v\n", err)
-		fmt.Printf("Verification URL: %s\n", verificationURL)
 		// Don't return error - the token was created, so the user can still verify manually
+		// Just log it for debugging
+		return err
 	}
 
 	return nil
