@@ -43,6 +43,12 @@ SELECT * FROM verification_tokens WHERE token = $1 AND expires_at > CURRENT_TIME
 -- name: DeleteVerificationToken :exec
 DELETE FROM verification_tokens WHERE token = $1;
 
+-- name: GetUserVerificationTokens :many
+SELECT * FROM verification_tokens
+WHERE user_id = $1 AND type = 'email_verification'
+ORDER BY created_at DESC
+LIMIT 5;
+
 -- name: CreateOAuthAccount :one
 INSERT INTO oauth_accounts (user_id, provider, provider_user_id, access_token, refresh_token, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -56,3 +62,9 @@ SELECT * FROM oauth_accounts WHERE user_id = $1 AND provider = $2 LIMIT 1;
 
 -- name: UpdateOAuthTokens :exec
 UPDATE oauth_accounts SET access_token = $1, refresh_token = $2, expires_at = $3 WHERE id = $4;
+
+-- name: UpdateUserName :exec
+UPDATE users SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2;
+
+-- name: UpdateUserLocation :exec
+UPDATE users SET region = $1, city = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3;

@@ -79,7 +79,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, password_hash, name, email_verified, image)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, email, password_hash, name, email_verified, image, created_at, updated_at
+RETURNING id, email, password_hash, name, email_verified, image, created_at, updated_at, region, city
 `
 
 type CreateUserParams struct {
@@ -108,6 +108,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Image,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Region,
+		&i.City,
 	)
 	return i, err
 }
@@ -222,7 +224,7 @@ func (q *Queries) GetRefreshToken(ctx context.Context, tokenHash string) (Refres
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, name, email_verified, image, created_at, updated_at FROM users WHERE email = $1 LIMIT 1
+SELECT id, email, password_hash, name, email_verified, image, created_at, updated_at, region, city FROM users WHERE email = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -237,12 +239,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Image,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Region,
+		&i.City,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, email, password_hash, name, email_verified, image, created_at, updated_at FROM users WHERE id = $1 LIMIT 1
+SELECT id, email, password_hash, name, email_verified, image, created_at, updated_at, region, city FROM users WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
@@ -257,8 +261,44 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Image,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Region,
+		&i.City,
 	)
 	return i, err
+}
+
+const getUserVerificationTokens = `-- name: GetUserVerificationTokens :many
+SELECT id, user_id, token, type, expires_at, created_at FROM verification_tokens
+WHERE user_id = $1 AND type = 'email_verification'
+ORDER BY created_at DESC
+LIMIT 5
+`
+
+func (q *Queries) GetUserVerificationTokens(ctx context.Context, userID uuid.UUID) ([]VerificationToken, error) {
+	rows, err := q.db.Query(ctx, getUserVerificationTokens, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []VerificationToken
+	for rows.Next() {
+		var i VerificationToken
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Token,
+			&i.Type,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getVerificationToken = `-- name: GetVerificationToken :one
@@ -338,6 +378,35 @@ type UpdateUserImageParams struct {
 
 func (q *Queries) UpdateUserImage(ctx context.Context, arg UpdateUserImageParams) error {
 	_, err := q.db.Exec(ctx, updateUserImage, arg.Image, arg.ID)
+	return err
+}
+
+const updateUserLocation = `-- name: UpdateUserLocation :exec
+UPDATE users SET region = $1, city = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3
+`
+
+type UpdateUserLocationParams struct {
+	Region pgtype.Text `json:"region"`
+	City   pgtype.Text `json:"city"`
+	ID     uuid.UUID   `json:"id"`
+}
+
+func (q *Queries) UpdateUserLocation(ctx context.Context, arg UpdateUserLocationParams) error {
+	_, err := q.db.Exec(ctx, updateUserLocation, arg.Region, arg.City, arg.ID)
+	return err
+}
+
+const updateUserName = `-- name: UpdateUserName :exec
+UPDATE users SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2
+`
+
+type UpdateUserNameParams struct {
+	Name string    `json:"name"`
+	ID   uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) error {
+	_, err := q.db.Exec(ctx, updateUserName, arg.Name, arg.ID)
 	return err
 }
 
