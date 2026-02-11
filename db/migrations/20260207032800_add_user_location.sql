@@ -1,0 +1,7 @@
+-- +goose Up
+ALTER TABLE users ADD COLUMN region TEXT;
+ALTER TABLE users ADD COLUMN city TEXT;
+
+-- +goose Down
+ALTER TABLE users DROP COLUMN IF EXISTS region;
+ALTER TABLE users DROP COLUMN IF EXISTS city;
