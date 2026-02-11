@@ -40,7 +40,7 @@ func SendVerificationEmail(toEmail, userName, verificationLink string) error {
 
 	fromEmail := os.Getenv("EMAIL_FROM")
 	if fromEmail == "" {
-		fromEmail = "Trompeventas <contacto@trompeventas.cl>"
+		fromEmail = "Trompeventas <no-reply@contacto.trompeventas.cl>"
 	}
 
 	params := &resend.SendEmailRequest{
