@@ -29,6 +29,8 @@ type UserResponse struct {
 	Name          string    `json:"name"`
 	EmailVerified bool      `json:"emailVerified"`
 	Image         string    `json:"image"`
+	Region        string    `json:"region"`
+	City          string    `json:"city"`
 	CreatedAt     time.Time `json:"createdAt"`
 }
 
@@ -51,6 +53,13 @@ type JWTClaims struct {
 	Email  string    `json:"email"`
 	Exp    int64     `json:"exp"`
 	Iat    int64     `json:"iat"`
+}
+
+type UpdateProfileRequest struct {
+	Name   string  `json:"name" binding:"required"`
+	Image  *string `json:"image"`
+	Region *string `json:"region"`
+	City   *string `json:"city"`
 }
 
 // OAuth exchange code request

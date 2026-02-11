@@ -18,6 +18,7 @@ func getCategoriesHandler(ctx *gin.Context) {
 	data, err := db.Queries.GetCategories(ctx)
 	if err != nil {
 		log.Error("Could not retrieve data of categories", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get categories"})
 		return
 	}
 
@@ -32,21 +33,21 @@ func createCategoriesHandler(ctx *gin.Context) {
 
 	err := decoder.Decode(&category)
 	if err != nil {
-		log.Error("Unproceasable entity", err)
-		ctx.Status(http.StatusUnprocessableEntity)
+		log.Error("Unprocessable entity", err)
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	createdCategories, errDB := db.Queries.CreateCategory(ctx, category.Name)
 	if errDB != nil {
-		log.Error("Error happen on db", errDB)
-		ctx.Status(http.StatusUnprocessableEntity)
+		log.Error("Error creating category in db", errDB)
+		ctx.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Failed to create category"})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "Category created successfully",
-		"product": createdCategories,
+		"message":  "Category created successfully",
+		"category": createdCategories,
 	})
 }
 
@@ -56,14 +57,14 @@ func deleteCategoriesHandler(ctx *gin.Context) {
 	categoryUUID, errUUID := uuid.Parse(categoryIdParam)
 	if errUUID != nil {
 		log.Error("Error parsing UUID", errUUID)
-		ctx.Status(http.StatusBadRequest)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
 		return
 	}
 
 	category, errDB := db.Queries.DeleteCategory(ctx, categoryUUID)
 	if errDB != nil {
-		log.Error("Error on db", errDB)
-		ctx.Status(http.StatusBadRequest)
+		log.Error("Error deleting category", errDB)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete category"})
 		return
 	}
 
@@ -84,7 +85,7 @@ func updateCategoriesHandler(ctx *gin.Context) {
 	productUUID, errUUID := uuid.Parse(productIdParam)
 	if errUUID != nil {
 		log.Error("Error parsing UUID", errUUID)
-		ctx.Status(http.StatusBadRequest)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
 		return
 	}
 	categoryToUpdate := client.UpdateCategoryParams{}
@@ -104,8 +105,8 @@ func updateCategoriesHandler(ctx *gin.Context) {
 
 	categories, errDB := db.Queries.UpdateCategory(ctx, categoryToUpdate)
 	if errDB != nil {
-		log.Error("Error happen on db", errDB)
-		ctx.Status(http.StatusUnprocessableEntity)
+		log.Error("Error updating category", errDB)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update category"})
 		return
 	}
 
@@ -116,7 +117,7 @@ func updateCategoriesHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{
-		"message": "updated successfully",
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Category updated successfully",
 	})
 }

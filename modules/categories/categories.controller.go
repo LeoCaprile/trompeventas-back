@@ -7,11 +7,11 @@ import (
 )
 
 func CategoriesController(router *gin.Engine) {
-	categoriesRouter := router.Group("/categories")
+	router.GET("/categories", getCategoriesHandler)
 
+	categoriesRouter := router.Group("/categories")
 	categoriesRouter.Use(auth.AuthMiddleware())
-	categoriesRouter.GET("/", getCategoriesHandler)
 	categoriesRouter.POST("/", createCategoriesHandler)
 	categoriesRouter.DELETE("/:id", deleteCategoriesHandler)
-	categoriesRouter.POST("/:id", updateCategoriesHandler)
+	categoriesRouter.PUT("/:id", updateCategoriesHandler)
 }
