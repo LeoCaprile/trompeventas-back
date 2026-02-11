@@ -32,6 +32,7 @@ func InitAuth(router *gin.Engine) {
 		auth.POST("/sign-out", handleSignOut)
 		auth.POST("/refresh", handleRefresh)
 		auth.GET("/me", AuthMiddleware(), handleGetCurrentUser)
+		auth.PUT("/me", AuthMiddleware(), handleUpdateProfile)
 		auth.POST("/send-verification", AuthMiddleware(), handleSendVerification)
 		auth.GET("/verify-email", handleVerifyEmail)
 		auth.GET("/oauth/google", handleGoogleOAuthURL)
@@ -56,6 +57,16 @@ func handleSignUp(c *gin.Context) {
 		println("Sign up error:", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user", "details": err.Error()})
 		return
+	}
+
+	// Send verification email automatically
+	userID, err := uuid.Parse(user.ID.String())
+	if err == nil {
+		err = authService.SendVerificationEmail(c.Request.Context(), userID)
+		if err != nil {
+			// Log the error but don't fail the sign-up
+			println("Failed to send verification email:", err.Error())
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"user": user})
@@ -143,6 +154,34 @@ func handleGetCurrentUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"user": user})
 }
 
+func handleUpdateProfile(c *gin.Context) {
+	userID := c.GetString("userId")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, err := authService.UpdateProfile(c.Request.Context(), uid, req.Name, req.Image, req.Region, req.City)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
 func handleSendVerification(c *gin.Context) {
 	userID := c.GetString("userId")
 	if userID == "" {
@@ -178,8 +217,8 @@ func handleVerifyEmail(c *gin.Context) {
 		return
 	}
 
-	// Redirect to frontend with success message
-	c.Redirect(http.StatusFound, AppConfig.FrontendURL+"/?verified=true")
+	// Redirect to frontend email verified success page
+	c.Redirect(http.StatusFound, AppConfig.FrontendURL+"/email-verified")
 }
 
 func handleGoogleOAuthURL(c *gin.Context) {
