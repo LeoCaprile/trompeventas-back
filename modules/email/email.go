@@ -38,11 +38,9 @@ func SendVerificationEmail(toEmail, userName, verificationLink string) error {
 	htmlContent = strings.ReplaceAll(htmlContent, "{{USER_NAME}}", userName)
 	htmlContent = strings.ReplaceAll(htmlContent, "{{VERIFICATION_LINK}}", verificationLink)
 
-	// Use Resend's onboarding domain for testing
-	// TODO: Change to "Trompeventas <noreply@trompeventas.cl>" after verifying domain in Resend
 	fromEmail := os.Getenv("EMAIL_FROM")
 	if fromEmail == "" {
-		fromEmail = "Trompeventas <onboarding@resend.dev>"
+		fromEmail = "Trompeventas <contacto@trompeventas.cl>"
 	}
 
 	params := &resend.SendEmailRequest{
