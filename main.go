@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"strings"
 	"restorapp/db"
 	"restorapp/modules/auth"
 	"restorapp/modules/categories"
@@ -17,8 +19,20 @@ import (
 func main() {
 	router := gin.Default()
 
+	// Get allowed origins from environment variable (required)
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		panic("ALLOWED_ORIGINS environment variable is required")
+	}
+
+	origins := strings.Split(allowedOrigins, ",")
+	// Trim whitespace from each origin
+	for i, origin := range origins {
+		origins[i] = strings.TrimSpace(origin)
+	}
+
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000"},
+		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Cookie", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
