@@ -211,13 +211,14 @@ func handleVerifyEmail(c *gin.Context) {
 		return
 	}
 
-	err := authService.VerifyEmail(c.Request.Context(), token)
+	_, err := authService.VerifyEmail(c.Request.Context(), token)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Redirect to frontend email verified success page
+	// The frontend will fetch updated user data and update the session
 	c.Redirect(http.StatusFound, AppConfig.FrontendURL+"/email-verified")
 }
 

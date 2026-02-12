@@ -306,26 +306,26 @@ func (s *AuthService) CreateVerificationToken(ctx context.Context, userID uuid.U
 	return token, nil
 }
 
-func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
+func (s *AuthService) VerifyEmail(ctx context.Context, token string) (uuid.UUID, error) {
 	// Get verification token
 	verificationToken, err := s.queries.GetVerificationToken(ctx, token)
 	if err != nil {
-		return errors.New("invalid or expired token")
+		return uuid.Nil, errors.New("invalid or expired token")
 	}
 
 	// Update user
 	err = s.queries.UpdateUserEmailVerified(ctx, verificationToken.UserID)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 
 	// Delete token
 	err = s.queries.DeleteVerificationToken(ctx, token)
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 
-	return nil
+	return verificationToken.UserID, nil
 }
 
 func (s *AuthService) SendVerificationEmail(ctx context.Context, userID uuid.UUID) error {
